@@ -1,37 +1,40 @@
 package commands;
 
+import java.time.Instant;
+import java.util.concurrent.ExecutionException;
+
+import org.bson.Document;
 import org.javacord.api.entity.server.Server;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.event.message.MessageCreateEvent;
 import org.javacord.api.listener.message.MessageCreateListener;
 
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
+
 import listeners.ServerJoinLeave;
 
 public class TestCommand implements MessageCreateListener {
-    
-	int i = 0;
+	
+	private MongoCollection<Document> offenceCollection;
+	
+	public TestCommand(MongoClient mongoClient) {
+		this.offenceCollection = mongoClient.getDatabase("index").getCollection("offences");
+	}
 	
 	@Override
     public void onMessageCreate(MessageCreateEvent event) {
         if(event.getMessageContent().toLowerCase().contains("!testcommand")){
-            ProfileServerUsers(event.getServer().get());
+        	//Log ban to database
+    		Document document;
+    		document = new Document("user_id", event.getMessageAuthor().getIdAsString())
+					.append("user_name", event.getMessageAuthor().getDiscriminatedName())
+					.append("server_id", event.getServer().get().getIdAsString())
+					.append("server_name", event.getServer().get().getName())
+					.append("offence", "Banned")
+					.append("reason", "U gae")
+					.append("date", Instant.now().toString());
+			offenceCollection.insertOne(document);
         }
     }
-	
-	private void ProfileServerUsers(Server server) {
-		String statement = "";
-		for(User user : server.getMembers()) {
-			String isBot = "0";
-			if(user.isBot()) isBot = "1";
-			String timestamp = user.getCreationTimestamp().toString();
-			if(timestamp.contains(".")) timestamp = timestamp.substring(0, timestamp.indexOf("."));
-			else timestamp = timestamp.replaceAll("Z", "");
-			timestamp = timestamp.replaceAll("T", " ");
-			statement += "\n    (\"" + user.getIdAsString() + "\",\"" + user.getDiscriminatedName() + "\",\"" + timestamp + "\",\"" + isBot + "\"),";
-		}
-//		connector.ExecutePreparedStatement("REPLACE INTO Users (user_id,user_name,creation_date)\n" + 
-//				   "    VALUES" + statement.substring(0, statement.lastIndexOf(",")) + ";");
-		System.out.println("REPLACE INTO Users (user_id,user_name,creation_date,is_bot)\n" + 
-				   "    VALUES" + statement.substring(0, statement.lastIndexOf(",")) + ";");
-	}
 }

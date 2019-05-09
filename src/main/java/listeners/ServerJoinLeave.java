@@ -1,43 +1,44 @@
 package listeners;
 
-import org.javacord.api.entity.server.Server;
-import org.javacord.api.entity.user.User;
+import org.bson.Document;
 import org.javacord.api.event.server.ServerJoinEvent;
 import org.javacord.api.event.server.ServerLeaveEvent;
 import org.javacord.api.listener.server.ServerJoinListener;
 import org.javacord.api.listener.server.ServerLeaveListener;
 
-import mysqlhandler.Connector;
+import com.mongodb.MongoClient;
+import com.mongodb.client.MongoCollection;
 
 public class ServerJoinLeave implements ServerJoinListener,ServerLeaveListener {
 
-	Connector connector = new Connector();
+	private MongoCollection<Document> serverCollection;
+	
+	public ServerJoinLeave(MongoClient mongoClient) {
+		this.serverCollection = mongoClient.getDatabase("index").getCollection("servers");
+	}
 	
 	@Override
 	public void onServerJoin(ServerJoinEvent event) {
-		connector.ExecutePreparedStatement("REPLACE INTO Servers (server_id,server_name,connected)\n    VALUES\n    (\"" + event.getServer().getIdAsString() + "\",\"" + event.getServer().getName() + "\",\"1\")");
 		
-		ProfileServerUsers(event.getServer());
+		Document document = new Document("server_id", event.getServer().getIdAsString())
+				.append("server_name", event.getServer().getName())
+				.append("server_owner_user_id", event.getServer().getOwner().getIdAsString())
+				.append("server_owner_user_name", event.getServer().getOwner().getDiscriminatedName())
+				.append("connected", true);
+		
+		serverCollection.insertOne(document);
+		
 	}
 
 	@Override
 	public void onServerLeave(ServerLeaveEvent event) {
-		connector.ExecutePreparedStatement("REPLACE INTO Servers (server_id,server_name,connected)\n    VALUES\n    (\"" + event.getServer().getIdAsString() + "\",\"" + event.getServer().getName() + "\",\"0\")");
+		
+		Document document = new Document("server_id", event.getServer().getIdAsString())
+				.append("server_name", event.getServer().getName())
+				.append("server_owner_user_id", event.getServer().getOwner().getIdAsString())
+				.append("server_owner_user_name", event.getServer().getOwner().getDiscriminatedName());
+		
+		serverCollection.updateOne(document, document.append("connection", false));
+		
 	}
-	
-	private void ProfileServerUsers(Server server) {
-		String statement = "";
-		for(User user : server.getMembers()) {
-			String isBot = "0";
-			if(user.isBot()) isBot = "1";
-			String timestamp = user.getCreationTimestamp().toString();
-			if(timestamp.contains(".")) timestamp = timestamp.substring(0, timestamp.indexOf("."));
-			else timestamp = timestamp.replaceAll("Z", "");
-			timestamp = timestamp.replaceAll("T", " ");
-			statement += "\n    (\"" + user.getIdAsString() + "\",\"" + user.getDiscriminatedName() + "\",\"" + timestamp + "\",\"" + isBot + "\"),";
-		}
-		connector.ExecutePreparedStatement("REPLACE INTO Users (user_id,user_name,creation_date,is_bot)\n" + 
-				   "    VALUES" + statement.substring(0, statement.lastIndexOf(",")) + ";");
-	}
-	
 }
