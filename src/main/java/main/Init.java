@@ -17,11 +17,14 @@ public class Init implements Runnable {
 	DiscordApi api;
 	MongoClient mongoClient;
 	Map<String, String> prefixes;
+
+	private Map<String, Server> servers;
 	
-	public Init(DiscordApi api, MongoClient mongoClient, Map<String, String> prefixes) {
+	public Init(DiscordApi api, MongoClient mongoClient, Map<String, String> prefixes, Map<String, Server> servers) {
 		this.api = api;
 		this.mongoClient = mongoClient;
 		this.prefixes = prefixes;
+		this.servers = servers;
 	}
 	
 	public void run() {
@@ -35,8 +38,9 @@ public class Init implements Runnable {
 			server.setServerID(document.getString("server_id"));
 			server.setPrefix((String) document.getOrDefault("prefix", DEFAULT_PREFIX));
 			server.setServer(api.getServerById(server.getServerID()).get());
-			server.setVerifyChannelID(document.getString("verify_channel_id"));
+			api.getServerTextChannelById(document.getString("log_channel_id")).ifPresent(c -> server.setLogChannel(c));
 			prefixes.put(server.getServerID(), server.getPrefix());
+			servers.put(server.getServerID(), server);
 			System.out.println("<!> Init: Loaded server [" + server.getServer().getName() + "]");
 		}
 	}

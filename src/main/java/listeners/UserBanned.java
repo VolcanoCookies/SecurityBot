@@ -28,7 +28,7 @@ public class UserBanned implements ServerMemberBanListener {
 					.append("user_name", event.getUser().getDiscriminatedName())
 					.append("server_id", event.getServer().getIdAsString())
 					.append("server_name", event.getServer().getName())
-					.append("offence", "Banned")
+					.append("punishment", "ban")
 					.append("reason", event.requestReason().get())
 					.append("date", Instant.now().toString());
 			offenceCollection.insertOne(document);

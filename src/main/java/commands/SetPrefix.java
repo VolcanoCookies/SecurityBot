@@ -3,6 +3,7 @@ package commands;
 import java.util.Map;
 
 import org.bson.Document;
+import org.javacord.api.entity.message.Message;
 import org.javacord.api.event.message.MessageCreateEvent;
 import org.javacord.api.listener.message.MessageCreateListener;
 
@@ -15,11 +16,13 @@ public class SetPrefix implements MessageCreateListener {
 	private Map<String, String> prefixes;
 	private MongoCollection<Document> serverCollection;
 	private String DEFAULT_PREFIX;
+	private Map<Message, Long> messagesToDelete;
 
-	public SetPrefix(MongoClient mongoClient, Map<String, String> prefixes, String DEFAULT_PREFIX) {
+	public SetPrefix(MongoClient mongoClient, Map<String, String> prefixes, String DEFAULT_PREFIX, Map<Message, Long> messagesToDelete) {
 		this.prefixes = prefixes;
 		this.serverCollection = mongoClient.getDatabase("index").getCollection("servers");
 		this.DEFAULT_PREFIX = DEFAULT_PREFIX;
+		this.messagesToDelete = messagesToDelete;
 	}
 	
 	@Override

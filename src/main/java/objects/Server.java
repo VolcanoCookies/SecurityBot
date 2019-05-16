@@ -2,6 +2,7 @@ package objects;
 
 import java.util.Map;
 
+import org.javacord.api.entity.channel.TextChannel;
 import org.javacord.api.entity.user.User;
 
 public class Server {
@@ -9,7 +10,7 @@ public class Server {
 	String serverID;
 	Map<User, Long> lastJoinedUsers;
 	String prefix;
-	String verifyChannelID;
+	TextChannel logChannel;
 	
 	
 	public String getServerID() {
@@ -36,10 +37,11 @@ public class Server {
 	public void setPrefix(String prefix) {
 		this.prefix = prefix;
 	}
-	public String getVerifyChannelID() {
-		return verifyChannelID;
+	public TextChannel getLogChannel() {
+		return logChannel;
 	}
-	public void setVerifyChannelID(String verifyChannelID) {
-		this.verifyChannelID = verifyChannelID;
+	public void setLogChannel(TextChannel logChannel) {
+		this.logChannel = logChannel;
 	}
+	
 }
