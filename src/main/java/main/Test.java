@@ -1,12 +1,19 @@
 package main;
 
-import java.sql.ResultSet;
-import java.time.Instant;
-
-import mysqlhandler.Connector;
-
 public class Test {
 	public static void main(String[] args) {
-		System.out.println(Long.MAX_VALUE + "\n" + Instant.now().toEpochMilli());
+		asd lvl = asd.one;
+		System.out.println(lvl.toString());
+	}
+}
+enum asd{
+	one(1),
+	two(2);
+	
+	int number;
+	
+	private asd(int nr) {
+		// TODO Auto-generated constructor stub
+		this.number = nr;
 	}
 }

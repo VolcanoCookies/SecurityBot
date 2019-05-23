@@ -1,29 +1,37 @@
 package main;
 
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.time.Instant;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
 
 import org.bson.Document;
 import org.javacord.api.DiscordApi;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.UpdateOptions;
 
 import objects.Server;
 
 public class Init implements Runnable {
 	
+	public static BufferedImage errorIcon;
+	public static BufferedImage checkedIcon;
+	public static BufferedImage infoIcon;
+	
 	public static final String DEFAULT_PREFIX = "!";
 	
 	DiscordApi api;
 	MongoClient mongoClient;
-	Map<String, String> prefixes;
 
-	private Map<String, Server> servers;
+	private Map<Long, Server> servers;
 	
-	public Init(DiscordApi api, MongoClient mongoClient, Map<String, String> prefixes, Map<String, Server> servers) {
+	public Init(DiscordApi api, MongoClient mongoClient, Map<Long, Server> servers) {
 		this.api = api;
 		this.mongoClient = mongoClient;
-		this.prefixes = prefixes;
 		this.servers = servers;
 	}
 	
@@ -31,18 +39,83 @@ public class Init implements Runnable {
 		
 		MongoCollection<Document> serverCollection = mongoClient.getDatabase("index").getCollection("servers");
 		
-		System.out.println("<!> Init: Found " + serverCollection.count() + " servers");
+		System.out.println("<Init> Found " + serverCollection.count() + " servers");
 		
 		for(Document document : serverCollection.find()) {
-			Server server = new Server();
-			server.setServerID(document.getString("server_id"));
-			server.setPrefix((String) document.getOrDefault("prefix", DEFAULT_PREFIX));
-			server.setServer(api.getServerById(server.getServerID()).get());
-			api.getServerTextChannelById(document.getString("log_channel_id")).ifPresent(c -> server.setLogChannel(c));
-			prefixes.put(server.getServerID(), server.getPrefix());
-			servers.put(server.getServerID(), server);
-			System.out.println("<!> Init: Loaded server [" + server.getServer().getName() + "]");
+			if(document.getBoolean("connected", true)) {
+				Server server = new Server();
+				server.setServerID(document.getLong("server_id"));
+				server.setPrefix((String) document.getOrDefault("config.prefix", DEFAULT_PREFIX));
+				server.setServer(api.getServerById(server.getServerID()).get());
+				//If server has log channel
+				if(document.containsKey("config")) {
+					if(document.get("config", Document.class).containsKey("log_channel_id")) {
+						api.getServerTextChannelById(document.get("config", Document.class).getLong("log_channel_id")).ifPresent(c -> server.setLogChannel(c));
+					}
+				}
+				servers.put(server.getServerID(), server);
+				System.out.println("<Init> Loaded server [" + server.getServer().getName() + "]");
+			}
+		}
+		
+		int createdEntriesFor = 0;
+		for(org.javacord.api.entity.server.Server server : api.getServers()) {
+			Document filter = new Document("server_id", server.getId());
+			if(serverCollection.find(filter).first()==null) {
+				
+				Document prefix = new Document("prefix", Main.DEFAULT_PREFIX);
+				
+				Document data = new Document();
+				data.put("server_id", server.getId());
+				data.put("server_name", server.getName());
+				data.put("server_owner_user_id", server.getOwner().getId());
+				data.put("server_owner_user_name", server.getOwner().getDiscriminatedName());
+				data.put("members", server.getMembers().size());
+				data.put("connected", true);
+				data.put("connect_date", Instant.now().toString());
+				data.put("config.prefix", prefix);
+				
+				Document update = new Document("$set", data);
+
+				UpdateOptions options = new UpdateOptions().upsert(true);
+				
+				serverCollection.updateOne(filter, update, options);
+				
+				//Create the server object
+				Server serverObject = new Server();
+				serverObject.setServerID(server.getId());
+				serverObject.setServer(server);
+				servers.put(serverObject.getServerID(), serverObject);
+				
+				createdEntriesFor++;
+			}
+		}
+		
+		if(createdEntriesFor>0) {
+			System.out.println("<Init> created " + createdEntriesFor + " entries for connected servers.");
+		}
+		
+		//Load images
+		try {
+			errorIcon = ImageIO.read(getClass().getClassLoader().getResource("errorIcon.png"));
+			System.out.println("<Init> Loaded errorIcon.png");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			checkedIcon = ImageIO.read(getClass().getClassLoader().getResource("checkedIcon3.png"));
+			System.out.println("<Init> Loaded checkedIcon3.png");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			infoIcon = ImageIO.read(getClass().getClassLoader().getResource("infoIcon.png"));
+			System.out.println("<Init> Loaded infoIcon.png");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
-	
 }

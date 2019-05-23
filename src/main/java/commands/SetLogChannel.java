@@ -18,25 +18,21 @@ import objects.Server;
 public class SetLogChannel implements MessageCreateListener {
 
 	private MongoCollection<Document> serverCollection;
-	private Map<String, String> prefixes;
-	private String DEFAULT_PREFIX;
 	private Map<Message, Long> messagesToDelete;
-	private Map<String, Server> servers;
+	private Map<Long, Server> servers;
 
-	public SetLogChannel(MongoClient mongoClient, Map<String, String> prefixes, String defaultPrefix, Map<Message, Long> messagesToDelete, Map<String, Server> servers) {
+	public SetLogChannel(MongoClient mongoClient, Map<Message, Long> messagesToDelete, Map<Long, Server> servers) {
 		this.serverCollection = mongoClient.getDatabase("index").getCollection("servers");
-		this.prefixes = prefixes;
-		this.DEFAULT_PREFIX = defaultPrefix;
 		this.messagesToDelete = messagesToDelete;
 		this.servers = servers;
 	}
 	
 	@Override
 	public void onMessageCreate(MessageCreateEvent event) {
-		if(Pattern.matches(prefixes.getOrDefault(event.getServer().get().getIdAsString(), DEFAULT_PREFIX) + "(setlog|setlogchannel|setchannelog|setlogs)", event.getMessageContent().toLowerCase()) && event.getMessageAuthor().canCreateChannelsOnServer() && event.isServerMessage()) {
+		if(Pattern.matches(servers.get(event.getServer().get().getId()).getPrefix() + "(setlog|setlogchannel|setchannelog|setlogs)", event.getMessageContent().toLowerCase()) && event.getMessageAuthor().canCreateChannelsOnServer() && event.isServerMessage()) {
 			
-			Document query = new Document("server_id", event.getServer().get().getIdAsString());
-			Document data = new Document("log_channel_id", event.getChannel().getIdAsString());
+			Document query = new Document("server_id", event.getServer().get().getId());
+			Document data = new Document("config.log_channel_id", event.getChannel().getId());
 			Document update = new Document("$set", data);
 			UpdateOptions options = new UpdateOptions().upsert(true);
 			
@@ -47,7 +43,7 @@ public class SetLogChannel implements MessageCreateListener {
 			.send(event.getChannel())
 			.thenAcceptAsync(m -> {messagesToDelete.put(m, 5000l); messagesToDelete.put(event.getMessage(), 5000l);});
 			
-			servers.get(event.getServer().get().getIdAsString()).setLogChannel(event.getServerTextChannel().get());
+			servers.get(event.getServer().get().getId()).setLogChannel(event.getServerTextChannel().get());
 			
 		}
 	}
