@@ -7,11 +7,11 @@ import java.util.function.BiConsumer;
 
 import org.javacord.api.entity.message.Message;
 
-public class MessageDeletionManager extends Thread {
+public class MessageGarbageThread extends Thread {
 	
 	Map<Message, Long> messages;
 	
-	public MessageDeletionManager(Map<Message, Long> messages) {
+	public MessageGarbageThread(Map<Message, Long> messages) {
 		this.messages = messages;
 	}
 	

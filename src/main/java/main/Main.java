@@ -20,40 +20,44 @@ import commands.SetLogChannel;
 import commands.SetPrefix;
 import commands.TestCommand;
 import listeners.AntiSpam;
+import listeners.MessageChanged;
+import listeners.RoleChangedListener;
 import listeners.ServerJoinLeaveLogger;
-import listeners.UserBanned;
-import managers.MessageDeletionManager;
+import listeners.UserBannedListener;
+import managers.MessageGarbageThread;
 import objects.Server;
 
 public class Main {
 	
-    //Add check for valid bot token, error print if no valid toker found
-
     //private static Logger logger = LogManager.getLogger(Main.class);
     private static DiscordApi api;
     
     static Map<Long, Server> servers = new ConcurrentHashMap<>();
     static Map<String, String> prefixes = new HashMap<>();
     static Map<Message, Long> messagesToDelete = new ConcurrentHashMap<>();
-    static MessageDeletionManager messageDM = new MessageDeletionManager(messagesToDelete);
+    static MessageGarbageThread messageGarbageThread = new MessageGarbageThread(messagesToDelete);
     
     public static final String DEFAULT_PREFIX = "!";
     
-    //MongoDB Credentials
-    //User: security_bot
-    //Pass: vXFCVnSC1NvuT6nz
+    static String databaseName, databasePassword;
+    static String botToken;
     
-	static MongoClientURI uri = new MongoClientURI(
-	    "mongodb://security_bot:vXFCVnSC1NvuT6nz@securitybot-shard-00-00-nmzyu.mongodb.net:27017,securitybot-shard-00-01-nmzyu.mongodb.net:27017,securitybot-shard-00-02-nmzyu.mongodb.net:27017/test?ssl=true&replicaSet=SecurityBot-shard-0&authSource=admin&retryWrites=true");
-	static MongoClient mongoClient = new MongoClient(uri);
+	static MongoClientURI uri;
+	static MongoClient mongoClient;
 
     public static void main(String[] args) {
-        // Insert your bot's token here
-        String token = "NTc1MjgzMjc3MDI0MTk4Njk2.XNFsUg.gkJ-5O1QKoAJXhXCBblC_NyE720";
+    	
+    	botToken = args[0];
+    	databaseName = args[1];
+    	databasePassword = args[2];
+    	
+    	//Login into mongoDB
+    	uri = new MongoClientURI("mongodb://" + databaseName + ":" + databasePassword + "@securitybot-shard-00-00-nmzyu.mongodb.net:27017,securitybot-shard-00-01-nmzyu.mongodb.net:27017,securitybot-shard-00-02-nmzyu.mongodb.net:27017/test?ssl=true&replicaSet=SecurityBot-shard-0&authSource=admin&retryWrites=true");
+    	mongoClient = new MongoClient(uri);
+    	
+    	//Login into discord
+        api = new DiscordApiBuilder().setToken(botToken).login().join();
         
-        api = new DiscordApiBuilder().setToken(token).login().join();
-        
-        // Print the invite url of your bot
         api.getThreadPool().getExecutorService().execute(() -> {
         	int connectedServers = api.getServers().size();
         	int totalMembers = 0;
@@ -70,15 +74,16 @@ public class Main {
         
         new Init(api, mongoClient, servers).run();
         
-        messageDM.start();
+        //Start message garbage thread to remove messages set to be deleted.
+        messageGarbageThread.start();
         
         // Add listeners
         api.addListener(new ServerJoinLeaveLogger(mongoClient));
         //api.addListener(new MemberJoinLeave(mongoClient, servers));
-        api.addListener(new UserBanned(mongoClient));
+        api.addListener(new UserBannedListener(mongoClient, servers));
         
-        //api.addListener(new MessageChanged(servers));
-        //api.addListener(new RoleChanged(servers));
+        api.addListener(new MessageChanged(servers));
+        api.addListener(new RoleChangedListener(servers));
         
         api.addMessageCreateListener(new TestCommand(mongoClient));
         api.addMessageCreateListener(new AntiSpam(mongoClient));
@@ -93,6 +98,8 @@ public class Main {
         // Log a message, if the bot joined or left a server
 //        api.addServerJoinListener(event -> logger.info("Joined server " + event.getServer().getName()));
 //        api.addServerLeaveListener(event -> logger.info("Left server " + event.getServer().getName()));
+        api.addServerLeaveListener(e -> System.out.println("Bot left " + e.getServer().getName() + "."));
+        api.addServerJoinListener(e -> System.out.println("Bot joined " + e.getServer().getName() + " with " + e.getServer().getMemberCount() + " members."));
     }
     public static DiscordApi getAPI(){
         return api;
