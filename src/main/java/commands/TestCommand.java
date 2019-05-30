@@ -2,7 +2,6 @@ package commands;
 
 import java.util.Map;
 
-import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.event.message.MessageCreateEvent;
 
@@ -19,10 +18,7 @@ public class TestCommand extends Command {
 
 	@Override
 	public void execute(MessageCreateEvent event) {
-		
-		new MessageBuilder()
-		.append(event.getServer().get().isAdmin(event.getMessageAuthor().asUser().get()))
-		.send(event.getChannel());
+		servers.get(event.getServer().get().getId()).updateMongoDatabase();
 	}
 
 	@Override
@@ -32,8 +28,8 @@ public class TestCommand extends Command {
 	}
 
 	@Override
-	public void canUse(MessageCreateEvent event) {
-		return;
+	public boolean canUse(MessageCreateEvent event) {
+		return false;
 	}
 	
 }

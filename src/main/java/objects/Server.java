@@ -9,7 +9,6 @@ import org.javacord.api.entity.user.User;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.operation.UpdateOperation;
 
 import main.Main;
 
@@ -84,8 +83,7 @@ public class Server {
 		this.raidLock = raidLock;
 	}
 	public boolean isRaidLock() {
-		if(this.raidLock==null) return false;
-		else return true;
+		return (this.raidLock != null);
 	}
 	public RaidLock getRaidLock() {
 		return this.raidLock;
@@ -136,14 +134,33 @@ public class Server {
 		return verificationChannel!=null;
 	}
 	public void updateMongoDatabase() {
+		
 		Document filter = new Document("server_id", serverID);
 		
 		Document data = new Document();
+		data.append("server_id", serverID);
+		data.append("server_name", server.getName());
+		data.append("owner_user_id", server.getOwner().getId());
+		data.append("owner_user_name", server.getOwner().getDiscriminatedName());
+		data.append("members", server.getMemberCount());
+		data.append("connected", server.getApi().getServers().contains(server));
+		data.append("config.prefix", prefix);
+		if(hasLogChannel()) data.append("config.log_channel_id", logChannel.getId());
+		if(hasVerificationChannel()) data.append("config.verify_channel_id", verificationChannel.getId());
+		data.append("config.verification_enabled", isVerificationEnabled());
+		if(isRaidLock()) {
+			data.append("raidlock.timer", raidLock.timer);
+			data.append("raidlock.unlock_at", raidLock.unlockAt);
+			data.append("raidlock.normal_verification_level", raidLock.normalVerificationLevel);
+			data.append("raidlock.normal_explicit_content_filter_level", raidLock.getNormalExplicitContentFilterLevel());
+		}
 		
 		Document update = new Document("$set", data);
 		
 		UpdateOptions updateOptions = new UpdateOptions();
 		updateOptions.upsert(true);
+		
+		mongoClient.getDatabase("index").getCollection("servers").updateOne(filter, update, updateOptions);
 	}
 }
 

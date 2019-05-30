@@ -13,6 +13,7 @@ import com.mongodb.MongoClientURI;
 
 import commands.Clear;
 import commands.Permissions;
+import commands.Security;
 import commands.TestCommand;
 import commands.TestReaction;
 import commands.verification.VerificationSettings;
@@ -122,7 +123,7 @@ public class Main {
         api.addListener(messageDeleteLogger);
         api.addListener(new RoleChangedListener(servers));
         
-        //api.addMessageCreateListener(new Security(servers, messagesToDelete, securityManager));
+        api.addMessageCreateListener(new Security(servers, messagesToDelete, securityManager));
         api.addMessageCreateListener(new AntiSpam(mongoClient));
         //api.addMessageCreateListener(new SetPrefix(mongoClient, servers, messagesToDelete));
         //api.addMessageCreateListener(new Ban(prefixes, DEFAULT_PREFIX, messagesToDelete));

@@ -10,12 +10,15 @@ import javax.imageio.ImageIO;
 
 import org.bson.Document;
 import org.javacord.api.DiscordApi;
+import org.javacord.api.entity.server.ExplicitContentFilterLevel;
+import org.javacord.api.entity.server.VerificationLevel;
 import org.javacord.api.entity.user.User;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.UpdateOptions;
 
+import objects.RaidLock;
 import objects.Server;
 import objects.VerifyRequest;
 
@@ -53,6 +56,15 @@ public class Init {
 					if(document.get("config", Document.class).containsKey("log_channel_id")) {
 						api.getServerTextChannelById(document.get("config", Document.class).getLong("log_channel_id")).ifPresent(c -> server.setLogChannel(c));
 					}
+					if(document.containsKey("config.verification_channel_id")) {
+						api.getServerTextChannelById(document.getString("config.verification_channel_id")).ifPresent(c -> server.setVerificationChannel(c));
+					}
+					if(document.containsKey("config.verification_enabled")) {
+						server.setVerificationEnabled(document.getBoolean("config.verification_enabled", true));
+					}
+				}
+				if(document.containsKey("raidlock")) {
+					server.setRaidLock(new RaidLock(document.getLong("raidlock.timer"), VerificationLevel.valueOf(document.getString("raidlock.normal_verification_level")), ExplicitContentFilterLevel.valueOf(document.getString("raidlock.normal_explicit_content_level"))));
 				}
 				servers.put(server.getServerID(), server);
 				System.out.println("<Init> Loaded server [" + server.getServer().getName() + "]");
@@ -69,8 +81,8 @@ public class Init {
 				Document data = new Document();
 				data.put("server_id", server.getId());
 				data.put("server_name", server.getName());
-				data.put("server_owner_user_id", server.getOwner().getId());
-				data.put("server_owner_user_name", server.getOwner().getDiscriminatedName());
+				data.put("owner_user_id", server.getOwner().getId());
+				data.put("owner_user_name", server.getOwner().getDiscriminatedName());
 				data.put("members", server.getMembers().size());
 				data.put("connected", true);
 				data.put("connect_date", Instant.now().toString());

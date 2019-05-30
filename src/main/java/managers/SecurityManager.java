@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.bson.Document;
 import org.javacord.api.entity.channel.ServerTextChannel;
@@ -25,15 +24,13 @@ import objects.RaidLock;
 import objects.Server;
 
 public class SecurityManager {
-
-	private MongoClient mongoClient;
+	
 	private Map<Long, Server> servers;
 	public Map<Long, Long> raidTimer;
 	private Thread unlockerThread;
 	private MongoCollection<Document> serverCollection;
 
 	public SecurityManager(MongoClient mongoClient, Map<Long, Server> servers) {
-		this.mongoClient = mongoClient;
 		this.servers = servers;
 		this.serverCollection = mongoClient.getDatabase("index").getCollection("servers");
 		
@@ -159,10 +156,10 @@ public class SecurityManager {
 		
 		Document data = new Document();
 		data.append("raidlock.timer", time);
-		data.append("raidlock.unlockDate", Instant.now().plusMillis(time).toString());
+		data.append("raidlock.unlock_date", Instant.now().plusMillis(time).toString());
 		data.append("raidlock.date", Instant.now().toString());
-		data.append("raidlock.normalVerificationLevel", currentServer.getVerificationLevel());
-		data.append("raidlock.explicitContentFilterLevel", currentServer.getExplicitContentFilterLevel());
+		data.append("raidlock.normal_verification_level", currentServer.getVerificationLevel());
+		data.append("raidlock.normal_explicit_content_level", currentServer.getExplicitContentFilterLevel());
 		data.append("raidlock.cause", cause);
 		
 		Document update = new Document("$set", data);
@@ -234,10 +231,14 @@ public class SecurityManager {
 			} catch (NoSuchElementException e) {}
 		}
 		
-		/*
-		 *  Remove MongoDB entry, after a set time? 
-		 *  Maybe mark for removal and have a garbage collector remove all old entries.
-		 */
+		//Remove MongoDB entry
+		
+		Document filter = new Document("server_id", server.getServerID());
+		
+		Document update = serverCollection.find(filter).first();
+		update.remove("raidlock");
+		
+		serverCollection.replaceOne(filter, update);
 		
 	}
 	

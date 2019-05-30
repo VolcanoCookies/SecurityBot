@@ -55,6 +55,7 @@ public class VerificationSettings extends Command {
 			log(server, log);
 			
 			server.setVerificationChannel(event.getChannel());
+			server.updateMongoDatabase();
 			
 			break;
 		case "toggle":
@@ -81,6 +82,8 @@ public class VerificationSettings extends Command {
 			log(server, logToggle);
 			
 			server.verificationEnabled = !server.verificationEnabled;
+			server.updateMongoDatabase();
+			
 			break;
 		default:
 			reply(event, help().setFooter("This message will be removed in 60 seconds."), 60000, true);

@@ -40,8 +40,9 @@ public class Verify extends Command {
 		Server server = servers.get(event.getServer().get().getId());
 		
 		if(!server.hasVerificationChannel() || !server.isVerificationEnabled()) return;
-		if(event.getChannel().getId() != server.getLogChannel().getId()) return;
+		if(event.getChannel().getId() != server.getVerificationChannel().getId()) return;
 		
+		deleteIn(event.getMessage(), 0);
 		try {
 			User user = event.getMessageAuthor().asUser().get();
 			String token = cage.getTokenGenerator().next();
@@ -57,6 +58,11 @@ public class Verify extends Command {
 			.thenAcceptAsync(m -> {
 				verifyRequests.put(user, new VerifyRequest(user, event.getServer().get(), token, Instant.now().toEpochMilli() + (1000 * 60 * 5)));
 			});
+			
+			log(server, new EmbedBuilder()
+					.setTitle("Verification request")
+					.addField("Issuer", user.getMentionTag())
+					.addField("Joined at", user.getJoinedAtTimestamp(event.getServer().get()).toString() + "\n Which was "));
 			
 			Document data = new Document();
 			data.append("user_id", user.getId());
