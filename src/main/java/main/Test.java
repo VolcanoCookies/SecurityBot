@@ -1,19 +1,18 @@
 package main;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class Test {
+	
 	public static void main(String[] args) {
-		asd lvl = asd.one;
-		System.out.println(lvl.toString());
-	}
-}
-enum asd{
-	one(1),
-	two(2);
-	
-	int number;
-	
-	private asd(int nr) {
-		// TODO Auto-generated constructor stub
-		this.number = nr;
+		Map<Integer, String> map = new ConcurrentHashMap<>();
+		
+		map.put(123, "test");
+		map.put(432, "test2");
+		map.put(123, "ddd");
+		
+		System.out.println(map.size());
+		
 	}
 }

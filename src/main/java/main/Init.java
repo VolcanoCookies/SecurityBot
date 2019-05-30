@@ -4,38 +4,39 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import javax.imageio.ImageIO;
 
 import org.bson.Document;
 import org.javacord.api.DiscordApi;
+import org.javacord.api.entity.user.User;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.UpdateOptions;
 
 import objects.Server;
+import objects.VerifyRequest;
 
-public class Init implements Runnable {
+public class Init {
 	
 	public static BufferedImage errorIcon;
 	public static BufferedImage checkedIcon;
 	public static BufferedImage infoIcon;
+	public static BufferedImage nostoppingIcon;
+	public static BufferedImage checkdocumentIcon;
+	public static BufferedImage alertIcon;
+	public static BufferedImage exclamationIcon;
 	
 	public static final String DEFAULT_PREFIX = "!";
 	
 	DiscordApi api;
 	MongoClient mongoClient;
-
-	private Map<Long, Server> servers;
 	
-	public Init(DiscordApi api, MongoClient mongoClient, Map<Long, Server> servers) {
+	public Init(DiscordApi api, MongoClient mongoClient, Map<Long, Server> servers, Map<User, VerifyRequest> verifyRequests) {
 		this.api = api;
 		this.mongoClient = mongoClient;
-		this.servers = servers;
-	}
-	
-	public void run() {
 		
 		MongoCollection<Document> serverCollection = mongoClient.getDatabase("index").getCollection("servers");
 		
@@ -91,6 +92,16 @@ public class Init implements Runnable {
 			}
 		}
 		
+		for(Document doc : mongoClient.getDatabase("index").getCollection("verifications").find()) {
+			try {
+				User user = api.getUserById(doc.getLong("user_id")).get();
+				verifyRequests.put(user, new VerifyRequest(user, api.getServerById(doc.getLong("server_id")).get(), doc.getString("token"), doc.getInteger("attempts_left")));
+			} catch (InterruptedException | ExecutionException e) {
+				//User is not connected to any common servers?
+				e.printStackTrace();
+			}
+		}
+		
 		if(createdEntriesFor>0) {
 			System.out.println("<Init> created " + createdEntriesFor + " entries for connected servers.");
 		}
@@ -117,5 +128,34 @@ public class Init implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		try {
+			nostoppingIcon = ImageIO.read(getClass().getClassLoader().getResource("nostoppingIcon.png"));
+			System.out.println("<Init> Loaded nostoppingIcon.png");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			checkdocumentIcon = ImageIO.read(getClass().getClassLoader().getResource("checkdocumentIcon.png"));
+			System.out.println("<Init> Loaded checkdocumentIcon.png");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			alertIcon = ImageIO.read(getClass().getClassLoader().getResource("alertIcon.png"));
+			System.out.println("<Init> Loaded alertIcon.png");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			exclamationIcon = ImageIO.read(getClass().getClassLoader().getResource("exclamationIcon.png"));
+			System.out.println("<Init> Loaded exclamationIcon.png");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
+	
 }

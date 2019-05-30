@@ -1,31 +1,38 @@
 package main;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.javacord.api.DiscordApi;
 import org.javacord.api.DiscordApiBuilder;
 import org.javacord.api.entity.message.Message;
+import org.javacord.api.entity.user.User;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-import commands.Ban;
 import commands.Clear;
-import commands.Investrigate;
-import commands.Kick;
 import commands.Permissions;
-import commands.SetLogChannel;
-import commands.SetPrefix;
 import commands.TestCommand;
+import commands.TestReaction;
+import commands.verification.VerificationSettings;
+import commands.verification.Verify;
 import listeners.AntiSpam;
-import listeners.MessageChanged;
 import listeners.RoleChangedListener;
 import listeners.ServerJoinLeaveLogger;
 import listeners.UserBannedListener;
+import logging.MessageDeleteLogger;
+import managers.CommandManager;
+import managers.GarbageManager;
 import managers.MessageGarbageThread;
+import managers.ReactionManager;
+import managers.SecurityManager;
+import managers.VerifyManager;
+import objects.Command;
+import objects.PermissionLevels;
+import objects.ReactionListener;
 import objects.Server;
+import objects.VerifyRequest;
 
 public class Main {
 	
@@ -33,9 +40,17 @@ public class Main {
     private static DiscordApi api;
     
     static Map<Long, Server> servers = new ConcurrentHashMap<>();
-    static Map<String, String> prefixes = new HashMap<>();
-    static Map<Message, Long> messagesToDelete = new ConcurrentHashMap<>();
+    public static Map<Message, Long> messagesToDelete = new ConcurrentHashMap<>();
+    private static Map<String, Command> commands = new ConcurrentHashMap<>();
+    private static Map<Message, ReactionListener> reactionListeners = new ConcurrentHashMap<>();
+    private static Map<User, VerifyRequest> verifyRequests = new ConcurrentHashMap<>();
+    
     static MessageGarbageThread messageGarbageThread = new MessageGarbageThread(messagesToDelete);
+    static SecurityManager securityManager;
+    static CommandManager commandManager;
+    static ReactionManager reactionManager;
+    static VerifyManager verifyManager;
+    static GarbageManager garbageManager;
     
     public static final String DEFAULT_PREFIX = "!";
     
@@ -43,7 +58,9 @@ public class Main {
     static String botToken;
     
 	static MongoClientURI uri;
-	static MongoClient mongoClient;
+	public static MongoClient mongoClient;
+
+	private static MessageDeleteLogger messageDeleteLogger;
 
     public static void main(String[] args) {
     	
@@ -72,28 +89,46 @@ public class Main {
         	
         });
         
-        new Init(api, mongoClient, servers).run();
+        new Init(api, mongoClient, servers, verifyRequests);
+        
+        messageDeleteLogger = new MessageDeleteLogger(servers);
+        
+        //Create command associations
+        addCommand(new TestCommand(servers, PermissionLevels.REGULAR));
+        addCommand(new Permissions(mongoClient, servers, messagesToDelete, PermissionLevels.ADMINISTRATOR));
+        addCommand(new TestReaction(servers, PermissionLevels.REGULAR));
+        addCommand(new Clear(servers, PermissionLevels.MODERATOR, messageDeleteLogger));
+        addCommand(new Verify(servers, PermissionLevels.REGULAR, verifyRequests, mongoClient));
+        addCommand(new VerificationSettings(servers, PermissionLevels.ADMINISTRATOR));
         
         //Start message garbage thread to remove messages set to be deleted.
+        securityManager = new SecurityManager(mongoClient, servers);
+        commandManager = new CommandManager(servers, api, commands);
+        reactionManager = new ReactionManager(reactionListeners);
+        verifyManager = new VerifyManager(verifyRequests, mongoClient);
+        garbageManager = new GarbageManager(verifyRequests, mongoClient);
+        
+        //Start threads
         messageGarbageThread.start();
+        garbageManager.start();
         
         // Add listeners
-        api.addListener(new ServerJoinLeaveLogger(mongoClient));
+        api.addListener(new ServerJoinLeaveLogger(mongoClient, servers));
+        api.addMessageCreateListener(verifyManager);
         //api.addListener(new MemberJoinLeave(mongoClient, servers));
         api.addListener(new UserBannedListener(mongoClient, servers));
-        
-        api.addListener(new MessageChanged(servers));
+        api.addMessageCreateListener(commandManager);
+        api.addReactionAddListener(reactionManager);
+        api.addListener(messageDeleteLogger);
         api.addListener(new RoleChangedListener(servers));
         
-        api.addMessageCreateListener(new TestCommand(mongoClient));
+        //api.addMessageCreateListener(new Security(servers, messagesToDelete, securityManager));
         api.addMessageCreateListener(new AntiSpam(mongoClient));
-        api.addMessageCreateListener(new Clear(servers, messagesToDelete));
-        api.addMessageCreateListener(new SetPrefix(mongoClient, servers, messagesToDelete));
-        api.addMessageCreateListener(new Permissions(mongoClient, servers, messagesToDelete));
-        api.addMessageCreateListener(new Ban(prefixes, DEFAULT_PREFIX, messagesToDelete));
-        api.addMessageCreateListener(new Kick(mongoClient, prefixes, DEFAULT_PREFIX, messagesToDelete));
-        api.addMessageCreateListener(new SetLogChannel(mongoClient, messagesToDelete, servers));
-        api.addMessageCreateListener(new Investrigate(mongoClient, prefixes, DEFAULT_PREFIX, messagesToDelete));
+        //api.addMessageCreateListener(new SetPrefix(mongoClient, servers, messagesToDelete));
+        //api.addMessageCreateListener(new Ban(prefixes, DEFAULT_PREFIX, messagesToDelete));
+        //api.addMessageCreateListener(new Kick(mongoClient, prefixes, DEFAULT_PREFIX, messagesToDelete));
+        //api.addMessageCreateListener(new SetLogChannel(mongoClient, messagesToDelete, servers));
+        //api.addMessageCreateListener(new Investrigate(mongoClient, prefixes, DEFAULT_PREFIX, messagesToDelete));
         
         // Log a message, if the bot joined or left a server
 //        api.addServerJoinListener(event -> logger.info("Joined server " + event.getServer().getName()));
@@ -104,7 +139,17 @@ public class Main {
     public static DiscordApi getAPI(){
         return api;
     }
-    public Map<String, String> getPrefixes() {
-		return prefixes;
-	}
+    public static void addCommand(Command command) {
+    	for(String prefix : command.prefix) commands.put(prefix, command);
+    }
+    public static void addReactionListener(Message message, ReactionListener reactionListener) {
+    	reactionListeners.put(message, reactionListener);
+    }
+    public static void skipMessage(Message message, Long... timer) {
+    	if(timer.length<1) {
+			timer = new Long[1];
+			timer[0] = 1000 * 60 * 5l;
+		}
+    	messageDeleteLogger.skipLogging(message);
+    }
 }

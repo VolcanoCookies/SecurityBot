@@ -31,7 +31,12 @@ public class MessageGarbageThread extends Thread {
 	}
 	
 	public BiConsumer<Message,Long> DeleteNow() {
-		return (m,l) -> {if(m.getCreationTimestamp().toEpochMilli() + l < Instant.now().toEpochMilli()) {m.delete(); messages.remove(m);}};
+		return (m,l) -> {
+			if(m.getCreationTimestamp().toEpochMilli() + l < Instant.now().toEpochMilli()) {
+					m.delete();
+					messages.remove(m);
+				}
+			};
 	}
 	
 	public void addMessage(Message message, long timer) {

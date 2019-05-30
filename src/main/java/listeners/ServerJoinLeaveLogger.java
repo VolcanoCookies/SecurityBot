@@ -1,6 +1,7 @@
 package listeners;
 
 import java.time.Instant;
+import java.util.Map;
 
 import org.bson.Document;
 import org.javacord.api.event.server.ServerJoinEvent;
@@ -13,13 +14,16 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.UpdateOptions;
 
 import main.Main;
+import objects.Server;
 
 public class ServerJoinLeaveLogger implements ServerJoinListener,ServerLeaveListener {
 
 	private MongoCollection<Document> serverCollection;
+	private Map<Long, Server> servers;
 	
-	public ServerJoinLeaveLogger(MongoClient mongoClient) {
+	public ServerJoinLeaveLogger(MongoClient mongoClient, Map<Long, Server> servers) {
 		this.serverCollection = mongoClient.getDatabase("index").getCollection("servers");
+		this.servers = servers;
 	}
 	
 	@Override
@@ -42,6 +46,12 @@ public class ServerJoinLeaveLogger implements ServerJoinListener,ServerLeaveList
 		
 		serverCollection.updateOne(filter, update, options);
 		
+		Server server = new Server();
+		server.setServerID(event.getServer().getId());
+		server.setServer(event.getServer());
+		servers.put(server.getServerID(), server);
+		System.out.println("Added server [" + server.getServer().getName() + "]");
+		
 	}
 
 	@Override
@@ -58,6 +68,8 @@ public class ServerJoinLeaveLogger implements ServerJoinListener,ServerLeaveList
 		UpdateOptions options = new UpdateOptions().upsert(true);
 		
 		serverCollection.updateOne(filter, update, options);
+		
+		servers.remove(event.getServer().getId());
 		
 	}
 }
