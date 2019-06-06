@@ -1,4 +1,4 @@
-package commands;
+package commands.moderation;
 
 import java.util.Map;
 import java.util.regex.Pattern;

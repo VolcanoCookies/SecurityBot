@@ -33,6 +33,12 @@ public class Server {
 	Map<Long, PermissionLevels> permissions = new ConcurrentHashMap<>();
 	Map<Command, PermissionLevels> commandPermissions = new ConcurrentHashMap<>();
 	
+	public void setProperty(String string, Object object) {
+		mongoClient.getDatabase("index").getCollection("servers").updateOne(new Document("server_id", serverID), new Document("$set", new Document(string, object)), new UpdateOptions().upsert(true));
+	}
+	public Object getProperty(String string) {
+		return mongoClient.getDatabase("index").getCollection("servers").find(new Document("server_id", serverID)).first().get(string);
+	}
 	public Map<Command, PermissionLevels> getCommandPermissions() {
 		return commandPermissions;
 	}

@@ -28,8 +28,8 @@ public class Verify extends Command {
 	private Map<User, VerifyRequest> verifyRequests;
 	private MongoCollection<Document> verificationsCollection;
 	
-	public Verify(Map<Long, Server> servers, PermissionLevels defaultPermission, Map<User, VerifyRequest> verifyRequests, MongoClient mongoClient) {
-		super(servers, defaultPermission);
+	public Verify(PermissionLevels defaultPermission, Map<User, VerifyRequest> verifyRequests, MongoClient mongoClient) {
+		super(defaultPermission);
 		this.verifyRequests = verifyRequests;
 		this.verificationsCollection = mongoClient.getDatabase("index").getCollection("verifications");
 		setPrefix("verify");

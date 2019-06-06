@@ -1,11 +1,10 @@
-package commands;
+package commands.moderation;
 
 import java.awt.Color;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,8 +27,8 @@ public class Clear extends Command {
 	private Matcher matcher;
 	private MessageDeleteLogger messageDeleteLogger;
 
-	public Clear(Map<Long, Server> servers, PermissionLevels defaultPermission, MessageDeleteLogger messageDeleteLogger) {
-		super(servers, defaultPermission);
+	public Clear(PermissionLevels defaultPermission, MessageDeleteLogger messageDeleteLogger) {
+		super(defaultPermission);
 		this.messageDeleteLogger = messageDeleteLogger;
 		setPrefix("clear", "prune", "delete");
 	}

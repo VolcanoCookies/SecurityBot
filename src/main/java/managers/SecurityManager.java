@@ -25,13 +25,11 @@ import objects.Server;
 
 public class SecurityManager {
 	
-	private Map<Long, Server> servers;
 	public Map<Long, Long> raidTimer;
 	private Thread unlockerThread;
 	private MongoCollection<Document> serverCollection;
 
 	public SecurityManager(MongoClient mongoClient, Map<Long, Server> servers) {
-		this.servers = servers;
 		this.serverCollection = mongoClient.getDatabase("index").getCollection("servers");
 		
 		unlockerThread = new Thread(() -> {

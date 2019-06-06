@@ -15,12 +15,11 @@ import main.Main;
 
 public abstract class Command {
 	
-	protected Map<Long, Server> servers;
+	protected Map<Long, Server> servers = Main.servers;
 	protected PermissionLevels defaultPermission;
 	public List<String> prefix = new ArrayList<>();
 	
-	public Command(Map<Long, Server> servers, PermissionLevels defaultPermission) {
-		this.servers = servers;
+	public Command(PermissionLevels defaultPermission) {
 		this.defaultPermission = defaultPermission;
 	}
 	public abstract void execute(MessageCreateEvent event);

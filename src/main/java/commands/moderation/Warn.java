@@ -1,4 +1,4 @@
-package commands;
+package commands.moderation;
 
 import java.awt.Color;
 import java.util.Map;

@@ -1,7 +1,6 @@
 package commands.verification;
 
 import java.awt.Color;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,8 +17,8 @@ public class VerificationSettings extends Command {
 	
 	Matcher matcher;
 	
-	public VerificationSettings(Map<Long, Server> servers, PermissionLevels defaultPermission) {
-		super(servers, defaultPermission);
+	public VerificationSettings(PermissionLevels defaultPermission) {
+		super(defaultPermission);
 		setPrefix("verifysettings", "verifyconfig", "verifys", "verifyc", "configverify", "settingsverify", "verificationsettings", "verificationconfig");
 	}
 

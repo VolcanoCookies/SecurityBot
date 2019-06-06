@@ -11,14 +11,17 @@ import org.javacord.api.entity.user.User;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-import commands.Clear;
-import commands.Permissions;
-import commands.Security;
 import commands.TestCommand;
 import commands.TestReaction;
+import commands.moderation.Ban;
+import commands.moderation.Clear;
+import commands.moderation.Permissions;
+import commands.moderation.RaidLock;
+import commands.moderation.SetPrefix;
 import commands.verification.VerificationSettings;
 import commands.verification.Verify;
 import listeners.AntiSpam;
+import listeners.MentionListener;
 import listeners.RoleChangedListener;
 import listeners.ServerJoinLeaveLogger;
 import listeners.UserBannedListener;
@@ -40,7 +43,7 @@ public class Main {
     //private static Logger logger = LogManager.getLogger(Main.class);
     private static DiscordApi api;
     
-    static Map<Long, Server> servers = new ConcurrentHashMap<>();
+    public static Map<Long, Server> servers = new ConcurrentHashMap<>();
     public static Map<Message, Long> messagesToDelete = new ConcurrentHashMap<>();
     private static Map<String, Command> commands = new ConcurrentHashMap<>();
     private static Map<Message, ReactionListener> reactionListeners = new ConcurrentHashMap<>();
@@ -95,12 +98,15 @@ public class Main {
         messageDeleteLogger = new MessageDeleteLogger(servers);
         
         //Create command associations
-        addCommand(new TestCommand(servers, PermissionLevels.REGULAR));
-        addCommand(new Permissions(mongoClient, servers, messagesToDelete, PermissionLevels.ADMINISTRATOR));
-        addCommand(new TestReaction(servers, PermissionLevels.REGULAR));
-        addCommand(new Clear(servers, PermissionLevels.MODERATOR, messageDeleteLogger));
-        addCommand(new Verify(servers, PermissionLevels.REGULAR, verifyRequests, mongoClient));
-        addCommand(new VerificationSettings(servers, PermissionLevels.ADMINISTRATOR));
+        addCommand(new TestCommand(PermissionLevels.REGULAR));
+        addCommand(new Permissions(PermissionLevels.MANAGER));
+        addCommand(new TestReaction(PermissionLevels.REGULAR));
+        addCommand(new Clear(PermissionLevels.MODERATOR, messageDeleteLogger));
+        addCommand(new Verify(PermissionLevels.REGULAR, verifyRequests, mongoClient));
+        addCommand(new VerificationSettings(PermissionLevels.ADMINISTRATOR));
+        addCommand(new RaidLock(PermissionLevels.MANAGER, securityManager));
+        addCommand(new Ban(PermissionLevels.ADMINISTRATOR));
+        addCommand(new SetPrefix(PermissionLevels.ADMINISTRATOR));
         
         //Start message garbage thread to remove messages set to be deleted.
         securityManager = new SecurityManager(mongoClient, servers);
@@ -114,6 +120,7 @@ public class Main {
         garbageManager.start();
         
         // Add listeners
+        api.addMessageCreateListener(new MentionListener(servers));
         api.addListener(new ServerJoinLeaveLogger(mongoClient, servers));
         api.addMessageCreateListener(verifyManager);
         //api.addListener(new MemberJoinLeave(mongoClient, servers));
@@ -123,10 +130,7 @@ public class Main {
         api.addListener(messageDeleteLogger);
         api.addListener(new RoleChangedListener(servers));
         
-        api.addMessageCreateListener(new Security(servers, messagesToDelete, securityManager));
         api.addMessageCreateListener(new AntiSpam(mongoClient));
-        //api.addMessageCreateListener(new SetPrefix(mongoClient, servers, messagesToDelete));
-        //api.addMessageCreateListener(new Ban(prefixes, DEFAULT_PREFIX, messagesToDelete));
         //api.addMessageCreateListener(new Kick(mongoClient, prefixes, DEFAULT_PREFIX, messagesToDelete));
         //api.addMessageCreateListener(new SetLogChannel(mongoClient, messagesToDelete, servers));
         //api.addMessageCreateListener(new Investrigate(mongoClient, prefixes, DEFAULT_PREFIX, messagesToDelete));

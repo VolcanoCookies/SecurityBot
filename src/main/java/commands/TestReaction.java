@@ -1,7 +1,5 @@
 package commands;
 
-import java.util.Map;
-
 import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.event.message.MessageCreateEvent;
@@ -11,12 +9,11 @@ import main.Main;
 import objects.Command;
 import objects.PermissionLevels;
 import objects.ReactionListener;
-import objects.Server;
 
 public class TestReaction extends Command {
 
-	public TestReaction(Map<Long, Server> servers, PermissionLevels defaultPermission) {
-		super(servers, defaultPermission);
+	public TestReaction(PermissionLevels defaultPermission) {
+		super(defaultPermission);
 		setPrefix("testreation", "testr", "r");
 	}
 
@@ -46,6 +43,12 @@ public class TestReaction extends Command {
 	public EmbedBuilder help() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public boolean canUse(MessageCreateEvent event) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

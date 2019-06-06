@@ -1,4 +1,6 @@
-package commands;
+package commands.moderation;
+
+import java.util.regex.Matcher;
 
 import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.event.message.MessageCreateEvent;
@@ -6,22 +8,25 @@ import org.javacord.api.event.message.MessageCreateEvent;
 import objects.Command;
 import objects.PermissionLevels;
 
-public class TestCommand extends Command {
-
-	public TestCommand(PermissionLevels defaultPermission) {
+public class Permissions extends Command {
+	
+	private Matcher matcher;
+	
+	public Permissions(PermissionLevels defaultPermission) {
 		super(defaultPermission);
-		setPrefix("test", "testcommand", "tst");
+		setPrefix("permission", "permissions", "perms", "perm", "p");
 	}
-
+	
 	@Override
 	public void execute(MessageCreateEvent event) {
-		servers.get(event.getServer().get().getId()).updateMongoDatabase();
+		
 	}
 
 	@Override
 	public EmbedBuilder help() {
-		// TODO Auto-generated method stub
-		return null;
+		EmbedBuilder embedBuilder = new EmbedBuilder();
+		
+		return embedBuilder;
 	}
 
 	@Override
