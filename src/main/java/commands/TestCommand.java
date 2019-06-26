@@ -1,8 +1,12 @@
 package commands;
 
+import java.awt.Color;
+
+import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.event.message.MessageCreateEvent;
 
+import main.Init;
 import objects.Command;
 import objects.PermissionLevels;
 
@@ -15,7 +19,21 @@ public class TestCommand extends Command {
 
 	@Override
 	public void execute(MessageCreateEvent event) {
-		servers.get(event.getServer().get().getId()).updateMongoDatabase();
+		EmbedBuilder embedBuilder = new EmbedBuilder();
+		embedBuilder.setTitle("Report");
+		embedBuilder.addField("Issued by", "issuer");
+		embedBuilder.addInlineField("Reported user", "Reported user");
+		embedBuilder.addField("Reason", "reason");
+		embedBuilder.setColor(new Color(255, 200, 50));
+		embedBuilder.setThumbnail(Init.checkdocumentIcon);
+		embedBuilder.addField("React with", "🔨 to ban.\n👢 to kick.\n⚠ to warn.\n❌ to ignore.");
+		MessageBuilder messageBuilder = new MessageBuilder();
+		messageBuilder.setEmbed(embedBuilder);
+		messageBuilder.send(event.getChannel())
+		.thenAcceptAsync(m -> {
+			m.addReactions("🔨", "👢", "⚠", "❌");
+			event.getMessage().delete();
+		});
 	}
 
 	@Override

@@ -46,28 +46,26 @@ public class Clear extends Command {
     	int amount = Integer.valueOf(matcher.group(1));
 		if(amount > 0) {
 			amount++;
-			
-			EmbedBuilder embedBuilder = new EmbedBuilder();
-			embedBuilder.setColor(new Color(100, 200, 100));
-			embedBuilder.setTitle("Mass delete");
-			embedBuilder.addField("Info", "Deleted " + amount + " messages from " + channel.getMentionTag() + ".\nIssued by: " + user.getMentionTag());
-			embedBuilder.setThumbnail(Init.checkedIcon);
-			embedBuilder.setFooter("This message will be deleted in 30 seconds.");
-			
-			String amountOfmessagesDeleted = Integer.toString(amount);
-			
+
 			MessageSet messageSet = channel.getMessagesBefore(amount, event.getMessage()).join();
 			messageDeleteLogger.skipLogging(messageSet);
 			messageDeleteLogger.skipLogging(event.getMessage());
 			
+			int amountOfmessagesDeleted = 0;
 			String messages = "";
 			for(Message m : messageSet) {
+				amountOfmessagesDeleted++;
 				messages += "\n" + m.getCreationTimestamp().toString() + "\t" + m.getAuthor().getDiscriminatedName() + "\t" + m.getReadableContent().replaceAll("\n", "\n\t\t\t");
 			}
 			
 			channel.deleteMessages(messageSet);
 			
-			reply(event, embedBuilder.setTimestampToNow(), 30000, true);
+			EmbedBuilder embedBuilder = new EmbedBuilder();
+			embedBuilder.setColor(new Color(100, 200, 100));
+			embedBuilder.addField("Mass delete", "Deleted " + amountOfmessagesDeleted + " messages from " + channel.getMentionTag() + ".\nIssued by: " + user.getMentionTag());
+			embedBuilder.setThumbnail(Init.checkedIcon);
+			
+			reply(event, embedBuilder, 30000, true);
 			
 			try {
 				File backup = File.createTempFile("bulkmessage", ".txt");
@@ -90,7 +88,7 @@ public class Clear extends Command {
 				e.printStackTrace();
 			}
 		} else {
-			reply(event, help().setFooter("This message will be removed in 60 seconds."), 60000, true);
+			reply(event, help(), 60000);
 		}
 	}
 
@@ -101,7 +99,6 @@ public class Clear extends Command {
 		embedBuilder.addField("Usage", "clear <Amount to delete>");
 		embedBuilder.setThumbnail(Init.infoIcon);
 		embedBuilder.setColor(new Color(150, 150, 255));
-		embedBuilder.setTimestampToNow();
 		
 		return embedBuilder;
 	}

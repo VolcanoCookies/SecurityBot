@@ -1,19 +1,26 @@
 package objects;
 
+import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.javacord.api.DiscordApi;
 import org.javacord.api.entity.message.Message;
 import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
+import org.javacord.api.entity.user.User;
 import org.javacord.api.event.message.MessageCreateEvent;
 
 import main.Main;
 
 public abstract class Command {
+	
+	//Colors
+	protected Color errorColor = new Color(255, 50, 50);
+	protected Color successColor = new Color(130, 255, 100);
 	
 	protected Map<Long, Server> servers = Main.servers;
 	protected PermissionLevels defaultPermission;
@@ -41,17 +48,31 @@ public abstract class Command {
 	 * The embed you want to respond with.
 	 * @param timer
 	 * In how long the embed should be removed.
+	 * If set to 0 then the embed wont be removed.
 	 * @param deleteCommand
 	 * Should the triggered command be deleted.
 	 */
 	public void reply(MessageCreateEvent event, EmbedBuilder embed, long timer, boolean deleteCommand) {
+		
+		if(timer != 0) {
+			embed.setFooter("This message will be removed in " + (timer / 1000) + " seconds.");
+		}
+		
+		embed.setTimestampToNow();
+		
 		new MessageBuilder()
 		.setEmbed(embed)
 		.send(event.getChannel())
 		.thenAcceptAsync(m -> {
-			deleteIn(m, timer);
+			if(timer != 0) deleteIn(m, timer);
 			if(deleteCommand) deleteIn(event.getMessage(), 0);
 		});
+	}
+	public void reply(MessageCreateEvent event, EmbedBuilder embed, long timer) {
+		reply(event, embed, timer, true);
+	}
+	public void reply(MessageCreateEvent event, EmbedBuilder embed) {
+		reply(event, embed, 0);
 	}
 	public String getContent(MessageCreateEvent event) {
 		String filter = "";
@@ -82,6 +103,9 @@ public abstract class Command {
 	public void setServers(Map<Long, Server> servers) {
 		this.servers = servers;
 	}
+	public Server getServer(MessageCreateEvent event) {
+		return servers.get(event.getServer().get().getId());
+	}
 	public PermissionLevels getDefaultPermission() {
 		return defaultPermission;
 	}
@@ -90,5 +114,11 @@ public abstract class Command {
 	}
 	public void setPrefix(String... strings) {
 		for(String string : strings) prefix.add(string);
+	}
+	public User getUser(MessageCreateEvent event) {
+		return event.getMessageAuthor().asUser().get();
+	}
+	public DiscordApi getApi() {
+		return Main.getAPI();
 	}
 }

@@ -1,85 +1,51 @@
 package listeners;
 
 import java.awt.Color;
-import java.util.Map;
 
-import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
-import org.javacord.api.entity.permission.Role;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.event.server.role.UserRoleAddEvent;
 import org.javacord.api.event.server.role.UserRoleRemoveEvent;
 import org.javacord.api.listener.server.role.UserRoleAddListener;
 import org.javacord.api.listener.server.role.UserRoleRemoveListener;
 
+import logging.LoggingManager;
 import objects.Server;
 
-public class RoleChangedListener implements UserRoleAddListener,UserRoleRemoveListener{
-
-	private Map<Long, Server> servers;
-
-	public RoleChangedListener(Map<Long, Server> servers) {
-		this.servers = servers;
-	}
+public class RoleChangedListener implements UserRoleAddListener, UserRoleRemoveListener, LoggingManager {
 	
 	@Override
 	public void onUserRoleAdd(UserRoleAddEvent event) {
-		if(servers.containsKey(event.getServer().getId())) {
-			if(servers.get(event.getServer().getId()).hasLogChannel()) {
-				event.getApi().getThreadPool().getExecutorService().execute(() -> {
-					
-					
-					User user = event.getUser();
-					Server currentServer = servers.get(event.getServer().getId());
-					String userRoles = "";
-					
-					for(Role role : user.getRoles(currentServer.getServer())) {
-						userRoles += role.getMentionTag();
-					}
-					
-					new MessageBuilder()
-					.setEmbed(new EmbedBuilder()
-							.setTitle("Role added")
-							.setColor(new Color(255, 255, 150))
-							.addField("User", user.getMentionTag() + "'s roles were changed.")
-							.addField("Current roles", userRoles)
-							.addField("Role added", event.getRole().getMentionTag())
-							.setThumbnail(user.getAvatar())
-							.setTimestampToNow())
-					.send(currentServer.getLogChannel());	
-				});
-			}
-		}
+		
+		Server server = getServer(event.getServer());
+		if(!server.hasLogChannel()) return;
+		
+		User user = event.getUser();
+		
+		EmbedBuilder embedBuilder = new EmbedBuilder();
+		embedBuilder.setTitle("Role added");
+		embedBuilder.addField("User", user.getMentionTag() + " recieved the [" + event.getRole().getMentionTag() + "] role.");
+		embedBuilder.setColor(new Color(150, 200, 100));
+		embedBuilder.setThumbnail(user.getAvatar());
+		
+		log(embedBuilder, server);
 	}
 
 	@Override
 	public void onUserRoleRemove(UserRoleRemoveEvent event) {
-		if(servers.containsKey(event.getServer().getId())) {
-			if(servers.get(event.getServer().getId()).hasLogChannel()) {
-				event.getApi().getThreadPool().getExecutorService().execute(() -> {
-					
-					User user = event.getUser();
-					Server currentServer = servers.get(event.getServer().getId());
-					String userRoles = "";
-					
-					for(Role role : user.getRoles(currentServer.getServer())) {
-						userRoles += role.getMentionTag();
-					}
-					
-					new MessageBuilder()
-					.setEmbed(new EmbedBuilder()
-							.setTitle("Role removed")
-							.setColor(new Color(255, 255, 150))
-							.addField("User", user.getMentionTag() + "'s roles were changed.")
-							.addField("Current roles", userRoles)
-							.addField("Role removed", event.getRole().getMentionTag())
-							.setThumbnail(user.getAvatar())
-							.setTimestampToNow())
-					.send(currentServer.getLogChannel());
-					
-				});
-			}
-		}
+		
+		Server server = getServer(event.getServer());
+		if(!server.hasLogChannel()) return;
+		
+		User user = event.getUser();
+		
+		EmbedBuilder embedBuilder = new EmbedBuilder();
+		embedBuilder.setTitle("Role removed");
+		embedBuilder.addField("User", user.getMentionTag() + " lost the [" + event.getRole().getMentionTag() + "] role.");
+		embedBuilder.setColor(new Color(230, 100, 100));
+		embedBuilder.setThumbnail(user.getAvatar());
+		
+		log(embedBuilder, server);
 	}
 
 }

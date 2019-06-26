@@ -1,7 +1,6 @@
-package commands.moderation;
+package commands.configuration;
 
 import java.awt.Color;
-import java.util.Map;
 import java.util.regex.Matcher;
 
 import org.javacord.api.entity.message.embed.EmbedBuilder;
@@ -19,7 +18,7 @@ public class SetPrefix extends Command {
 
 	public SetPrefix(PermissionLevels defaultPermission) {
 		super(defaultPermission);
-		setPrefix("setprefix", "prefixset");
+		setPrefix("setprefix", "prefixset", "prefix");
 	}
 
 	@Override

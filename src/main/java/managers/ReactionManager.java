@@ -11,7 +11,7 @@ import objects.ReactionListener;
 public class ReactionManager implements ReactionAddListener {
 
 	private Map<Message, ReactionListener> reactionListeners;
-
+	
 	public ReactionManager(Map<Message, ReactionListener> reactionListeners) {
 		this.reactionListeners = reactionListeners;
 	}
@@ -19,7 +19,7 @@ public class ReactionManager implements ReactionAddListener {
 	@Override
 	public void onReactionAdd(ReactionAddEvent event) {
 		
-		if(event.getUser().isYourself()) return;
+		if(event.getUser().isYourself() || event.getUser().isBot()) return;
 		
 		Message message = event.getMessage().get();
 		

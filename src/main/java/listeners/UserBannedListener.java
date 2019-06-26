@@ -1,42 +1,37 @@
 package listeners;
 
+import java.awt.Color;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.bson.Document;
-import org.javacord.api.entity.message.MessageBuilder;
 import org.javacord.api.entity.message.embed.EmbedBuilder;
 import org.javacord.api.entity.permission.Role;
 import org.javacord.api.entity.user.User;
 import org.javacord.api.event.server.member.ServerMemberBanEvent;
 import org.javacord.api.listener.server.member.ServerMemberBanListener;
 
-import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 
+import logging.LoggingManager;
+import main.Main;
 import objects.Server;
 
-public class UserBannedListener implements ServerMemberBanListener {
+public class UserBannedListener implements ServerMemberBanListener, LoggingManager {
 	
-	private MongoCollection<Document> offenceCollection;
+	private MongoCollection<Document> offenceCollection = Main.mongoClient.getDatabase("index").getCollection("offences");
 	private Map<Long, Server> servers;
-
-	public UserBannedListener(MongoClient mongoClient, Map<Long, Server> servers) {
-		this.offenceCollection = mongoClient.getDatabase("index").getCollection("offences");
-		this.servers = servers;
-	}
 	
 	@Override
 	public void onServerMemberBan(ServerMemberBanEvent event) {
-		event.getApi().getThreadPool().getExecutorService().execute(() -> {
-			
+		
 			Server currentServer = servers.get(event.getServer().getId());
 			User user = event.getUser();
 			String reason = null;
 			
 			try {
-				reason = event.requestReason().get().orElse(null);
+				reason = event.requestReason().get().orElse("No reason available.");
 			} catch (InterruptedException | ExecutionException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -44,31 +39,24 @@ public class UserBannedListener implements ServerMemberBanListener {
 			
 			if(currentServer.hasLogChannel()) {
 				
+				String type = "User";
+				if(user.isBot()) type = "Bot";
+				
 				EmbedBuilder embedBuilder = new EmbedBuilder();
-				if (!user.isBot()) {
-					embedBuilder.setTitle("User Banned");
-					embedBuilder.addField("User", user.getMentionTag() + " also known as " + user.getDiscriminatedName() + "was banned.");
-				} else {
-					embedBuilder.setTitle("Bot banned");
-					embedBuilder.addField("Bot", user.getMentionTag() + " also known as " + user.getDiscriminatedName() + "was banned.");
-				}
+				embedBuilder.setTitle(type + " Banned");
+				embedBuilder.addField(type, user.getMentionTag() + " also known as " + user.getDiscriminatedName() + "was banned.");
+				embedBuilder.addField("Reason", reason);
 				embedBuilder.setThumbnail(user.getAvatar());
-				if(reason==null) {
-					embedBuilder.addField("Reason", "No reason available");
-				} else {
-					embedBuilder.addField("Reason", reason);
-				}
+				embedBuilder.setColor(new Color(230, 100, 100));
 				
 				String userRoles = "";
 				for(Role role : user.getRoles(currentServer.getServer())) {
-					userRoles += role.getMentionTag();
+					userRoles += " " + role.getMentionTag();
 				}
 				
-				embedBuilder.addField("User roles", userRoles);
+				embedBuilder.addField("Roles", userRoles.replaceFirst(" ", ""));
 				
-				new MessageBuilder()
-				.setEmbed(embedBuilder)
-				.send(currentServer.getLogChannel());
+				log(embedBuilder, currentServer);
 				
 			}
 			
@@ -82,7 +70,6 @@ public class UserBannedListener implements ServerMemberBanListener {
 					.append("date", Instant.now().toString());
 			offenceCollection.insertOne(document);
 			
-		});
 	}
 
 }

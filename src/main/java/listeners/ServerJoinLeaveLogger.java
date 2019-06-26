@@ -13,7 +13,6 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.UpdateOptions;
 
-import main.Main;
 import objects.Server;
 
 public class ServerJoinLeaveLogger implements ServerJoinListener,ServerLeaveListener {
@@ -29,16 +28,20 @@ public class ServerJoinLeaveLogger implements ServerJoinListener,ServerLeaveList
 	@Override
 	public void onServerJoin(ServerJoinEvent event) {
 		
+		org.javacord.api.entity.server.Server currentServer = event.getServer();
+		
+		System.out.println("Joined [" + currentServer + "] with [" + currentServer.getMemberCount() + "] members.");
+		
 		Document filter = new Document("_id", event.getServer().getIdAsString());
 		
 		Document data = new Document();
-		data.append("server_name", event.getServer().getName());
-		data.append("server_owner_user_id", event.getServer().getOwner().getIdAsString());
-		data.append("server_owner_user_name", event.getServer().getOwner().getDiscriminatedName());
-		data.append("members", event.getServer().getMembers().size());
+		data.append("server_name", currentServer.getName());
+		data.append("server_owner_user_id", currentServer.getOwner().getIdAsString());
+		data.append("server_owner_user_name", currentServer.getOwner().getDiscriminatedName());
+		data.append("members", currentServer.getMemberCount());
 		data.append("connected", true);
 		data.append("connect_date", Instant.now().toString());
-		data.append("config", new Document("prefix", Main.DEFAULT_PREFIX));
+		data.append("config", null);
 		
 		Document update = new Document("$set", data);
 
@@ -47,20 +50,25 @@ public class ServerJoinLeaveLogger implements ServerJoinListener,ServerLeaveList
 		serverCollection.updateOne(filter, update, options);
 		
 		Server server = new Server();
-		server.setServerID(event.getServer().getId());
-		server.setServer(event.getServer());
+		server.setServerID(currentServer.getId());
+		server.setServer(currentServer);
 		servers.put(server.getServerID(), server);
-		System.out.println("Added server [" + server.getServer().getName() + "]");
+		
+		System.out.println("Added server [" + server.getServer().getName() + "] to server list.");
 		
 	}
 
 	@Override
 	public void onServerLeave(ServerLeaveEvent event) {
 		
-		Document filter = new Document("_id", event.getServer().getIdAsString());
+		org.javacord.api.entity.server.Server currentServer = event.getServer();
+		
+		System.out.println("Left [" + currentServer.getName() + "]");
+		
+		Document filter = new Document("_id", currentServer.getIdAsString());
 		
 		Document data = new Document();
-		data.append("connection", false);
+		data.append("connected", false);
 		data.append("disconnect_date", Instant.now().toString());
 		
 		Document update = new Document("$set", data);
@@ -69,7 +77,9 @@ public class ServerJoinLeaveLogger implements ServerJoinListener,ServerLeaveList
 		
 		serverCollection.updateOne(filter, update, options);
 		
-		servers.remove(event.getServer().getId());
+		servers.remove(currentServer.getId());
+		
+		System.out.println("Removed [" + currentServer.getName() + "] from serevr list.");
 		
 	}
 }

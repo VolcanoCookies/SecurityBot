@@ -2,10 +2,13 @@ package managers;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.BiConsumer;
 
 import org.javacord.api.entity.message.Message;
+
+import main.Main;
 
 public class MessageGarbageThread extends Thread {
 	
@@ -17,17 +20,23 @@ public class MessageGarbageThread extends Thread {
 	
 	@Override
 	public void run() {
-		while(true) {
-			if(!messages.isEmpty()) {
-				messages.forEach(DeleteNow());
+		
+		TimerTask timerTask = new TimerTask() {
+			@Override
+			public void run() {
+				if(!messages.isEmpty()) {
+					long startTime = System.nanoTime();
+					messages.forEach(DeleteNow());
+					if(Main.showMessageDeleteCompletionTime) {
+						long time = (System.nanoTime() - startTime)/1000000;
+						if(time > 0) System.out.println("Deleting messages took " + time + "ms");
+					}
+				}
 			}
-			try {
-				TimeUnit.MILLISECONDS.sleep(1000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+		};
+		
+		Timer timer = new Timer(true);
+		timer.schedule(timerTask, 0, 5000);
 	}
 	
 	public BiConsumer<Message,Long> DeleteNow() {

@@ -1,4 +1,4 @@
-package commands.moderation;
+package commands.configuration;
 
 import java.awt.Color;
 import java.util.regex.Matcher;

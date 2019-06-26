@@ -25,10 +25,10 @@ import objects.VerifyRequest;
 public class Verify extends Command {
 
 	Cage cage = new YCage();
-	private Map<User, VerifyRequest> verifyRequests;
+	private Map<Long, VerifyRequest> verifyRequests;
 	private MongoCollection<Document> verificationsCollection;
 	
-	public Verify(PermissionLevels defaultPermission, Map<User, VerifyRequest> verifyRequests, MongoClient mongoClient) {
+	public Verify(PermissionLevels defaultPermission, Map<Long, VerifyRequest> verifyRequests, MongoClient mongoClient) {
 		super(defaultPermission);
 		this.verifyRequests = verifyRequests;
 		this.verificationsCollection = mongoClient.getDatabase("index").getCollection("verifications");
@@ -44,8 +44,9 @@ public class Verify extends Command {
 		
 		deleteIn(event.getMessage(), 0);
 		try {
+			
 			User user = event.getMessageAuthor().asUser().get();
-			String token = cage.getTokenGenerator().next();
+			String token= cage.getTokenGenerator().next();
 			new MessageBuilder()
 			.setEmbed(new EmbedBuilder()
 					.addField("Visual Captcha", "Respond with the text in the image, your answer is case sensitive.\nYou can only have one pending verification request, all previous ones are now invalid.")
@@ -56,7 +57,7 @@ public class Verify extends Command {
 					.setImage(cage.drawImage(token)))
 			.send(user.openPrivateChannel().get())
 			.thenAcceptAsync(m -> {
-				verifyRequests.put(user, new VerifyRequest(user, event.getServer().get(), token, Instant.now().toEpochMilli() + (1000 * 60 * 5)));
+				verifyRequests.put(user.getId(), new VerifyRequest(user, event.getServer().get(), token, Instant.now().toEpochMilli() + (1000 * 60 * 5)));
 			});
 			
 			log(server, new EmbedBuilder()
